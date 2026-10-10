@@ -1,0 +1,88 @@
+name: Edge devices (Arduino Uno in simavr, Raspberry Pi stack on ARM64)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  arduino-uno-simavr:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: arduino/setup-arduino-cli@v2
+
+      - name: Install AVR core and simavr
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install arduino:avr
+          sudo apt-get update
+          sudo apt-get install -y simavr
+
+      - name: Compile sketches for Arduino Uno (ATmega328P)
+        run: |
+          mkdir -p out
+          for s in digit_recognizer signal_shape; do
+            arduino-cli compile -b arduino:avr:uno --output-dir "build/$s" "arduino/$s" \
+              | tee "out/${s}_compile.txt"
+          done
+          ls -la build/*
+
+      - name: Run firmware in simavr (ATmega328P @ 16 MHz)
+        run: |
+          SIM=$(command -v simavr || command -v run_avr)
+          for s in digit_recognizer signal_shape; do
+            echo "=== $s ==="
+            timeout 8 "$SIM" -m atmega328p -f 16000000 "build/$s/$s.ino.elf" \
+              > "out/${s}_raw.txt" 2>&1 || true
+            sed -r 's/\x1B\[[0-9;]*[A-Za-z]//g' "out/${s}_raw.txt" | head -40 > "out/${s}_uart.txt"
+            cat "out/${s}_uart.txt"
+          done
+          grep -q "итог: " out/digit_recognizer_uart.txt
+          grep -q "итог: " out/signal_shape_uart.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arduino-uno-simavr
+          path: out/
+
+  raspberry-pi-arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run classify_pi.py in Debian 12 Bookworm (Raspberry Pi OS base), aarch64
+        run: |
+          mkdir -p out
+          docker run --rm --cpus=4 -v "$PWD:/w" -w /w/raspberry_pi arm64v8/debian:bookworm bash -euo pipefail -c '
+            apt-get update -qq
+            apt-get install -y -qq python3 python3-venv python3-pip wget curl ca-certificates util-linux > /dev/null
+            python3 -m venv /venv && . /venv/bin/activate
+            pip install -q pillow numpy tflite-runtime
+            {
+              echo "== платформа =="
+              echo "arch: $(uname -m)"
+              grep PRETTY_NAME /etc/os-release
+              lscpu | grep -E "Model name|^CPU\(s\)|Vendor ID" || true
+              python3 --version
+              python3 -c "import tflite_runtime, numpy; print(\"tflite_runtime\", tflite_runtime.__version__)"
+            } | tee /w/out/platform.txt
+
+            wget -q https://storage.googleapis.com/download.tensorflow.org/models/tflite_11_05_08/mobilenet_v2_1.0_224_quant.tgz
+            wget -q https://storage.googleapis.com/download.tensorflow.org/models/tflite_11_05_08/mobilenet_v2_1.0_224.tgz
+            tar xzf mobilenet_v2_1.0_224_quant.tgz
+            tar xzf mobilenet_v2_1.0_224.tgz
+            curl -sSL -o labels.txt https://raw.githubusercontent.com/google-coral/test_data/master/imagenet_labels.txt
+            wget -q -O cat.jpg https://raw.githubusercontent.com/EliSchwartz/imagenet-sample-images/master/n02123045_tabby.JPEG
+
+            echo "== TFLite 8-bit (mobilenet_v2_1.0_224_quant) ==" | tee /w/out/bench.txt
+            python3 classify_pi.py --runs 250 | tee -a /w/out/bench.txt
+            echo "== TFLite float32 (mobilenet_v2_1.0_224) ==" | tee -a /w/out/bench.txt
+            python3 classify_pi.py --model mobilenet_v2_1.0_224.tflite --float --runs 250 | tee -a /w/out/bench.txt
+          '
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: raspberry-pi-arm64
+          path: out/

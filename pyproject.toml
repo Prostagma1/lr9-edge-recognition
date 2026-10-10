@@ -1,0 +1,40 @@
+[project]
+name = "lr9"
+version = "0.1.0"
+description = "ЛР9. Распознавание образов на одноплатном устройстве: бенчмарк из лекции (MobileNetV2, 250 классификаций) на доступных бэкендах"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "torch==2.11.0",
+    "torchvision==0.26.0",
+    "onnx>=1.17",
+    "onnxruntime>=1.20",
+    "pillow>=11",
+    "numpy>=2.1",
+    "matplotlib>=3.9",
+    "scikit-learn>=1.5",
+    "pyserial>=3.5",
+]
+
+[project.scripts]
+lr9-bench = "lr9.benchmark:main"
+lr9-arduino-export = "lr9.arduino_export:main"
+lr9-signal-export = "lr9.signal_export:main"
+lr9-send-digit = "lr9.host_tools:send_digit"
+lr9-send-signal = "lr9.host_tools:send_signal"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lr9"]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }

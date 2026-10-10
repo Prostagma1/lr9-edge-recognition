@@ -1,0 +1,16 @@
+__pycache__/
+*.py[oc]
+.venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+results/
+
+# arduino build
+arduino/**/build/
+
+# не публикуем
+Отчёт.docx
+lekciya.pdf
+~$*
