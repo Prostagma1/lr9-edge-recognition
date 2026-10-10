@@ -6,7 +6,7 @@
   * (опционально) непрерывное распознавание кадров с камеры Pi.
 
 Зависимости на Pi:
-    pip install pillow numpy
+    pip install pillow "numpy<2"      # tflite-runtime собран под numpy 1.x
     pip install tflite-runtime        # лёгкий интерпретатор TFLite
     # для камеры (Pi OS Bookworm): sudo apt install -y python3-picamera2
 

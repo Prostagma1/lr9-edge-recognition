@@ -15,7 +15,7 @@
  *     новое изображение — и отвечает распознанной цифрой.
  */
 
-#include "model_data.h"    // IN_DIM, HID_DIM, OUT_DIM, W1/B1/W2/B2, REQUANT_M1, REQUANT_SHIFT
+#include "model_data.h"    // IN_DIM, HID_DIM, OUT_DIM, W1/BIAS1/W2/BIAS2, REQUANT_M1, REQUANT_SHIFT
 #include "test_images.h"   // N_TEST, TEST_IMAGES, TEST_LABELS
 
 static int8_t  x[IN_DIM];
@@ -27,9 +27,9 @@ static inline int32_t clamp_i(int32_t v, int32_t lo, int32_t hi) {
 
 // Прямой проход int8-сети. Возвращает распознанный класс 0..9.
 uint8_t infer(const int8_t *img) {
-  // --- слой 1: acc(int32) = B1 + img . W1 ;  ReLU ;  requant в int8 ---
+  // --- слой 1: acc(int32) = BIAS1 + img . W1 ;  ReLU ;  requant в int8 ---
   for (uint8_t j = 0; j < HID_DIM; j++) {
-    int32_t acc = (int32_t)pgm_read_dword(&B1[j]);
+    int32_t acc = (int32_t)pgm_read_dword(&BIAS1[j]);
     const int8_t *w = &W1[(uint16_t)j * IN_DIM];
     for (uint8_t i = 0; i < IN_DIM; i++) {
       acc += (int32_t)img[i] * (int8_t)pgm_read_byte(&w[i]);
@@ -40,11 +40,11 @@ uint8_t infer(const int8_t *img) {
     h[j] = (int8_t)clamp_i((int32_t)q, 0, 127);
   }
 
-  // --- слой 2: acc(int32) = B2 + h . W2 ;  argmax ---
+  // --- слой 2: acc(int32) = BIAS2 + h . W2 ;  argmax ---
   int32_t best_val = -2147483647L;
   uint8_t best_k = 0;
   for (uint8_t k = 0; k < OUT_DIM; k++) {
-    int32_t acc = (int32_t)pgm_read_dword(&B2[k]);
+    int32_t acc = (int32_t)pgm_read_dword(&BIAS2[k]);
     const int8_t *w = &W2[(uint16_t)k * HID_DIM];
     for (uint8_t j = 0; j < HID_DIM; j++) {
       acc += (int32_t)h[j] * (int8_t)pgm_read_byte(&w[j]);

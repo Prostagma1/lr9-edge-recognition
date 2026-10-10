@@ -9,7 +9,7 @@ Pi 4 / Pi 5, Raspberry Pi OS Bookworm). Повторяет бенчмарк из
 ```bash
 sudo apt update && sudo apt install -y python3-pip python3-picamera2
 python3 -m venv --system-site-packages .venv && source .venv/bin/activate
-pip install pillow numpy
+pip install pillow "numpy<2"           # tflite-runtime собран под numpy 1.x
 pip install tflite-runtime            # если нет — pip install ai-edge-litert
 
 # модель + метки (квантованная MobileNetV2, ImageNet):

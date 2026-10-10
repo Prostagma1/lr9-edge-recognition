@@ -16,7 +16,7 @@
  * Веса — сгенерированы `uv run lr9-signal-export`.
  */
 
-#include "signal_model.h"    // IN_DIM=32, HID_DIM, OUT_DIM=6, W1/B1/W2/B2, REQUANT_*
+#include "signal_model.h"    // IN_DIM=32, HID_DIM, OUT_DIM=6, W1/BIAS1/W2/BIAS2, REQUANT_*
 #include "signal_labels.h"   // SHAPE_NAMES[OUT_DIM]
 #include "test_signals.h"    // N_TEST, TEST_SIGNALS, TEST_LABELS
 
@@ -32,7 +32,7 @@ static inline int32_t clampi(int32_t v, int32_t lo, int32_t hi) {
 
 uint8_t infer(const int8_t *sig) {
   for (uint8_t j = 0; j < HID_DIM; j++) {
-    int32_t acc = (int32_t)pgm_read_dword(&B1[j]);
+    int32_t acc = (int32_t)pgm_read_dword(&BIAS1[j]);
     const int8_t *w = &W1[(uint16_t)j * IN_DIM];
     for (uint8_t i = 0; i < IN_DIM; i++)
       acc += (int32_t)sig[i] * (int8_t)pgm_read_byte(&w[i]);
@@ -43,7 +43,7 @@ uint8_t infer(const int8_t *sig) {
   }
   int32_t best = -2147483647L; uint8_t bk = 0;
   for (uint8_t k = 0; k < OUT_DIM; k++) {
-    int32_t acc = (int32_t)pgm_read_dword(&B2[k]);
+    int32_t acc = (int32_t)pgm_read_dword(&BIAS2[k]);
     const int8_t *w = &W2[(uint16_t)k * HID_DIM];
     for (uint8_t j = 0; j < HID_DIM; j++)
       acc += (int32_t)h[j] * (int8_t)pgm_read_byte(&w[j]);

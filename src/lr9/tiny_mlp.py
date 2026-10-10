@@ -85,9 +85,9 @@ def emit_model_h(path: Path, q: dict, *, in_dim: int, hid: int, out: int,
         f"const int32_t REQUANT_M1 = {q['M1']};",
         "",
         _c_array("W1", q["W1q"].T, "int8_t"),   # (hid, in) — построчно по нейрону
-        _c_array("B1", q["B1q"], "int32_t"),
+        _c_array("BIAS1", q["B1q"], "int32_t"),
         _c_array("W2", q["W2q"].T, "int8_t"),   # (out, hid)
-        _c_array("B2", q["B2q"], "int32_t"),
+        _c_array("BIAS2", q["B2q"], "int32_t"),
         "",
     ]
     path.write_text("\n".join(lines), encoding="utf-8")
