@@ -33,6 +33,33 @@
    запущенный на доступном железе (ноутбук, RTX 3050 Ti) на разных бэкендах,
    сопоставленных с рядами таблиц из лекции.
 
+## Проверка на эмуляции железа (GitHub Actions)
+
+Workflow [`.github/workflows/edge.yml`](.github/workflows/edge.yml), последний
+успешный прогон —
+[actions/runs/38057747017](https://github.com/Prostagma1/lr9-edge-recognition/actions/runs/38057747017).
+
+* **Arduino Uno в simavr.** `arduino-cli` собирает оба скетча под `arduino:avr:uno`,
+  `.elf` исполняется в потактовом эмуляторе ATmega328P @ 16 МГц, UART — в лог.
+* **Raspberry Pi-стек на ARM64.** Раннер `ubuntu-24.04-arm`, контейнер
+  `arm64v8/debian:bookworm` (база Raspberry Pi OS), Python 3.11 + tflite-runtime 2.14,
+  `classify_pi.py --runs 250` на моделях из лекции.
+
+| платформа | задача | результат | скорость | ресурсы |
+|---|---|---|---|---|
+| Uno (simavr) | цифра 8×8 | 10/10 | 5668 мкс | flash 5294 Б (16 %), SRAM 268 Б (13 %) |
+| Uno (simavr) | форма сигнала | 6/6 | 4682 мкс | flash 4814 Б (14 %), SRAM 296 Б (14 %) |
+| ARM64 Neoverse-N2 | MobileNetV2 8-bit | Egyptian cat | 153.4 FPS | Pi 4 в лекции: 8.6 FPS |
+| ARM64 Neoverse-N2 | MobileNetV2 float32 | Egyptian cat | 238.9 FPS | Pi 4 в лекции: 7.8 FPS |
+
+ARM64-раннер — серверное ядро, заметно быстрее Cortex-A72 у Pi 4: прогон подтверждает
+архитектуру и программный стек, а не скорость самой платы.
+
+![run](screenshots/run.png)
+![uno digit](screenshots/uno_digit.png)
+![uno signal](screenshots/uno_signal.png)
+![pi bench](screenshots/pi_bench.png)
+
 ## Как запустить
 
 ```bash

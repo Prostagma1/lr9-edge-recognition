@@ -14,3 +14,4 @@ arduino/**/build/
 Отчёт.docx
 lekciya.pdf
 ~$*
+ci_out/
